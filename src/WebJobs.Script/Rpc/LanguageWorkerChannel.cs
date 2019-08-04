@@ -267,6 +267,9 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         internal void LoadResponse(FunctionLoadResponse loadResponse)
         {
             _workerChannelLogger.LogDebug("Received FunctionLoadResponse for functionId:{functionId}", loadResponse.FunctionId);
+            DateTime dateValue_4 = DateTime.Now;
+            _workerChannelLogger.LogError("Opaaa 11 Received FunctionLoadResponse:" + ":" + dateValue_4.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+
             if (loadResponse.Result.IsFailure(out Exception ex))
             {
                 //Cache function load errors to replay error messages on invoking failed functions
@@ -290,7 +293,17 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             }
 
             // link the invocation inputs to the invoke call
+            DateTime dateValue_2 = DateTime.Now;
+            _workerChannelLogger.LogError("Opaaa 111 before ActionBlock:" + ":" + dateValue_2.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+
             var invokeBlock = new ActionBlock<ScriptInvocationContext>(ctx => SendInvocationRequest(ctx));
+
+            DateTime dateValue_3 = DateTime.Now;
+            _workerChannelLogger.LogError("Opaaa 1111 after ActionBlock:" + ":" + dateValue_3.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+            //    new ExecutionDataflowBlockOptions
+            //    {
+            //       MaxDegreeOfParallelism = 4
+            //    });
             // associate the invocation input buffer with the function
             var disposableLink = _functionInputBuffers[loadResponse.FunctionId].LinkTo(invokeBlock);
             _inputLinks.Add(disposableLink);
@@ -300,6 +313,10 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         {
             try
             {
+                string temp = context.ExecutionContext.InvocationId.ToString();
+                DateTime dateValue_2 = DateTime.Now;
+                _workerChannelLogger.LogError("Opaaa 1 start SendInvocationRequest:" + temp + ":" + dateValue_2.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+
                 if (_functionLoadErrors.ContainsKey(context.FunctionMetadata.FunctionId))
                 {
                     _workerChannelLogger.LogDebug($"Function {context.FunctionMetadata.Name} failed to load");
@@ -319,7 +336,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                     InvocationRequest invocationRequest = new InvocationRequest()
                     {
                         FunctionId = functionMetadata.FunctionId,
-                        InvocationId = context.ExecutionContext.InvocationId.ToString(),
+                        InvocationId = temp,
                     };
                     foreach (var pair in context.BindingData)
                     {
@@ -338,11 +355,13 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                     }
 
                     _executingInvocations.TryAdd(invocationRequest.InvocationId, context);
-
                     SendStreamingMessage(new StreamingMessage
                     {
                         InvocationRequest = invocationRequest
                     });
+
+                    DateTime dateValue = DateTime.Now;
+                    _workerChannelLogger.LogError("Opaaa 2 end SendInvocationRequest:" + temp + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                 }
             }
             catch (Exception invokeEx)
@@ -353,7 +372,8 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
 
         internal void InvokeResponse(InvocationResponse invokeResponse)
         {
-            _workerChannelLogger.LogDebug("InvocationResponse received for invocation id: {Id}", invokeResponse.InvocationId);
+            DateTime dateValue = DateTime.Now;
+            _workerChannelLogger.LogError("Opaaa 5 start InvokeResponse:" + invokeResponse.InvocationId + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
             if (_executingInvocations.TryRemove(invokeResponse.InvocationId, out ScriptInvocationContext context)
                 && invokeResponse.Result.IsSuccess(context.ResultSource))
             {
@@ -374,6 +394,8 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                     context.ResultSource.TrySetException(responseEx);
                 }
             }
+            DateTime dateValue_2 = DateTime.Now;
+            _workerChannelLogger.LogError("Opaaa 6 end InvokeResponse:" + invokeResponse.InvocationId + ":" + dateValue_2.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
         }
 
         internal void Log(RpcEvent msg)

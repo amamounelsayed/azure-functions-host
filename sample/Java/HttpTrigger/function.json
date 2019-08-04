@@ -3,7 +3,8 @@
   "entryPoint" : "Microsoft.Azure.WebJobs.Script.Tests.EndToEnd.Function.run",
   "bindings" : [ {
     "type" : "httpTrigger",
-    "direction" : "in",
+    "direction": "in",
+    "authLevel": "anonymous",
     "methods" : [ "GET", "POST" ],
     "name" : "req"
   }, {

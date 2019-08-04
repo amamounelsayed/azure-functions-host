@@ -211,10 +211,14 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         {
             try
             {
+                DateTime dateValue = DateTime.Now;
+                _logger.LogError("Opaaa 000 start Invoke:" + invocationContext.ExecutionContext.InvocationId + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                 IEnumerable<ILanguageWorkerChannel> workerChannels = GetInitializedWorkerChannels();
                 var languageWorkerChannel = _functionDispatcherLoadBalancer.GetLanguageWorkerChannel(workerChannels, _maxProcessCount);
                 if (languageWorkerChannel.FunctionInputBuffers.TryGetValue(invocationContext.FunctionMetadata.FunctionId, out BufferBlock<ScriptInvocationContext> bufferBlock))
                 {
+                    DateTime dateValue_1 = DateTime.Now;
+                    _logger.LogError("Opaaa 0000 before posting invocation id:" + invocationContext.ExecutionContext.InvocationId + ":" + dateValue_1.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                     _logger.LogDebug("Posting invocation id:{InvocationId} on workerId:{workerChannelId}", invocationContext.ExecutionContext.InvocationId, languageWorkerChannel.Id);
                     languageWorkerChannel.FunctionInputBuffers[invocationContext.FunctionMetadata.FunctionId].Post(invocationContext);
                 }

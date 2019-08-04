@@ -52,7 +52,11 @@ namespace Microsoft.Azure.WebJobs.Script.Description
         {
             // Need to wait for atleast one language worker process to be initialized before accepting invocations
             await DelayUntilFunctionDispatcherInitialized();
+
             string invocationId = context.ExecutionContext.InvocationId.ToString();
+
+            DateTime dateValue_2 = DateTime.Now;
+            _logger.LogError("Opaaa 0 InvokeCore start:" + invocationId + ":" + dateValue_2.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
 
             // TODO: fix extensions and remove
             object triggerValue = TransformInput(parameters[0], context.Binder.BindingData);
@@ -74,7 +78,9 @@ namespace Microsoft.Azure.WebJobs.Script.Description
             };
 
             ScriptInvocationResult result;
-            _logger.LogDebug($"Sending invocation id:{invocationId}");
+            DateTime dateValue = DateTime.Now;
+            _logger.LogError("Opaaa 00 Invokecore before functionDispatcher.Invoke:" + invocationId + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+            _logger.LogDebug($"Sending invocation id:{invocationId} " + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
             _functionDispatcher.Invoke(invocationContext);
             result = await invocationContext.ResultSource.Task;
 
