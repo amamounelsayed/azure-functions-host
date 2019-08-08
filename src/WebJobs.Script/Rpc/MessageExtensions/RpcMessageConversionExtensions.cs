@@ -228,7 +228,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                 }
                 else
                 {
-                    http.RawBody = rawBodyString.ToRpc(logger, capabilities);
+                 //   http.RawBody = rawBodyString.ToRpc(logger, capabilities);
                 }
             }
 

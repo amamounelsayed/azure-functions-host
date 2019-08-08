@@ -32,6 +32,9 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
 
         public override async Task EventStream(IAsyncStreamReader<StreamingMessage> requestStream, IServerStreamWriter<StreamingMessage> responseStream, ServerCallContext context)
         {
+            DateTime dateValue_1 = DateTime.Now;
+            _logger.LogError("Opaaa 22 start the EventStream of RPC:" + ":" + dateValue_1.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+
             var cancelSource = new TaskCompletionSource<bool>();
             IDictionary<string, IDisposable> outboundEventSubscriptions = new Dictionary<string, IDisposable>();
             try
@@ -60,9 +63,15 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                                 // For each responseStream subscription, observe as a blocking write, in series, on a new thread
                                 if (evt.MessageType == MsgType.InvocationRequest)
                                 {
+                                    DateTime dateValue = DateTime.Now;
+                                    _logger.LogError("Opaaa 222 EventStream Writing invocation request invocationId:" + evt.Message.InvocationRequest.InvocationId + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                                     _logger.LogDebug("Writing invocation request invocationId: {invocationId} to workerId: {workerId}", evt.Message.InvocationRequest.InvocationId, workerId);
                                 }
+                                DateTime dateValue_3 = DateTime.Now;
+                                _logger.LogError("Opaaa 2222 EventStream before writeAsync:" + ":" + dateValue_3.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                                 responseStream.WriteAsync(evt.Message).GetAwaiter().GetResult();
+                                DateTime dateValue_4 = DateTime.Now;
+                                _logger.LogError("Opaaa 22222 EventStream after writeAsync:" + evt.Message.InvocationRequest.InvocationId + ":" + dateValue_4.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                             }
                             catch (Exception subscribeEventEx)
                             {
@@ -74,9 +83,13 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                         var currentMessage = requestStream.Current;
                         if (currentMessage.InvocationResponse != null && !string.IsNullOrEmpty(currentMessage.InvocationResponse.InvocationId))
                         {
+                            DateTime dateValue = DateTime.Now;
+                            _logger.LogError("Opaaa 55 EventStream Received invocation response before publish:" + currentMessage.InvocationResponse.InvocationId + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                             _logger.LogDebug("Received invocation response for invocationId: {invocationId} from workerId: {workerId}", currentMessage.InvocationResponse.InvocationId, workerId);
                         }
                         _eventManager.Publish(new InboundEvent(workerId, currentMessage));
+                        DateTime dateValue_2 = DateTime.Now;
+                        _logger.LogError("Opaaa 555 EventStream Received invocation response after publish:" + ":" + dateValue_2.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
                     }
                     while (await messageAvailable());
                 }

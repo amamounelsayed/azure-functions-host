@@ -296,14 +296,13 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             DateTime dateValue_2 = DateTime.Now;
             _workerChannelLogger.LogError("Opaaa 111 before ActionBlock:" + ":" + dateValue_2.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
 
-            var invokeBlock = new ActionBlock<ScriptInvocationContext>(ctx => SendInvocationRequest(ctx));
-
+            var invokeBlock = new ActionBlock<ScriptInvocationContext>(ctx => SendInvocationRequest(ctx),
+            new ExecutionDataflowBlockOptions
+            {
+                MaxDegreeOfParallelism = 6
+            });
             DateTime dateValue_3 = DateTime.Now;
             _workerChannelLogger.LogError("Opaaa 1111 after ActionBlock:" + ":" + dateValue_3.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
-            //    new ExecutionDataflowBlockOptions
-            //    {
-            //       MaxDegreeOfParallelism = 4
-            //    });
             // associate the invocation input buffer with the function
             var disposableLink = _functionInputBuffers[loadResponse.FunctionId].LinkTo(invokeBlock);
             _inputLinks.Add(disposableLink);

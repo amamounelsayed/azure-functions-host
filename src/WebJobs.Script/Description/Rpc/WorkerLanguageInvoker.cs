@@ -81,6 +81,7 @@ namespace Microsoft.Azure.WebJobs.Script.Description
             DateTime dateValue = DateTime.Now;
             _logger.LogError("Opaaa 00 Invokecore before functionDispatcher.Invoke:" + invocationId + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
             _logger.LogDebug($"Sending invocation id:{invocationId} " + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+            await Task.Delay(100);
             _functionDispatcher.Invoke(invocationContext);
             result = await invocationContext.ResultSource.Task;
 
