@@ -437,25 +437,46 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         {
             //   var call = client.EventStream();
             //   call.RequestStream.WriteAsync(msg);
-            using (var call = client.EventStream())
+            try
             {
-                var responseReaderTask = Task.Run(async () =>
+                using (var call = client.EventStream(deadline: DateTime.UtcNow.AddSeconds(2)))
                 {
-                    while (await call.ResponseStream.MoveNext())
+                    var responseReaderTask = Task.Run(async () =>
                     {
-                        var currentMessage = call.ResponseStream.Current;
-                        if (currentMessage.InvocationResponse != null && !string.IsNullOrEmpty(currentMessage.InvocationResponse.InvocationId))
+                        while (await call.ResponseStream.MoveNext())
                         {
-                            DateTime dateValue = DateTime.Now;
+                            var currentMessage = call.ResponseStream.Current;
+                            if (currentMessage.InvocationResponse != null && !string.IsNullOrEmpty(currentMessage.InvocationResponse.InvocationId))
+                            {
+                                DateTime dateValue = DateTime.Now;
+                            }
+                            DateTime dateValue_4 = DateTime.Now;
+                            _workerChannelLogger.LogError("Opaaa 55 end SendStreamingMessage:" + ":" + dateValue_4.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
+        //                    _eventManager.Publish(new InboundEvent(_workerId, currentMessage));
+                            if (currentMessage.FunctionLoadResponse != null)
+                            {
+                                LoadResponse(currentMessage.FunctionLoadResponse);
+                            }
+                            else if (currentMessage.InvocationResponse != null)
+                            {
+                                InvokeResponse(currentMessage.InvocationResponse);
+                            }
+                            else
+                            {
+                                _eventManager.Publish(new InboundEvent(_workerId, currentMessage));
+                            }
                         }
-                        _eventManager.Publish(new InboundEvent(_workerId, currentMessage));
-                    }
-                });
-                await call.RequestStream.WriteAsync(msg);
-                await call.RequestStream.CompleteAsync();
-                await responseReaderTask;
+                    });
+                    await call.RequestStream.WriteAsync(msg);
+                    await call.RequestStream.CompleteAsync();
+                    await responseReaderTask;
+                }
             }
-       //     _eventManager.Publish(new OutboundEvent(_workerId, msg));
+            catch (Exception ex)
+            {
+                var a = ex.Message;
+            }
+                //     _eventManager.Publish(new OutboundEvent(_workerId, msg));
         }
 
         protected virtual void Dispose(bool disposing)
