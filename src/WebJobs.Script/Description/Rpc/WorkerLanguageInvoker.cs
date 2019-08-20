@@ -66,7 +66,7 @@ namespace Microsoft.Azure.WebJobs.Script.Description
             ScriptInvocationContext invocationContext = new ScriptInvocationContext()
             {
                 FunctionMetadata = Metadata,
-                BindingData = context.Binder.BindingData,
+                BindingData = context.Binder.BindingData,   // This has duplicates too (of type DefaultHttpRequest). Needs to be removed after verifying this can indeed be constructed by the workers from the rest of the data being passed (https://github.com/Azure/azure-functions-host/issues/4735).
                 ExecutionContext = context.ExecutionContext,
                 Inputs = inputs,
                 ResultSource = new TaskCompletionSource<ScriptInvocationResult>(),
@@ -81,7 +81,8 @@ namespace Microsoft.Azure.WebJobs.Script.Description
             DateTime dateValue = DateTime.Now;
             _logger.LogError("Opaaa 00 Invokecore before functionDispatcher.Invoke:" + invocationId + ":" + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
             _logger.LogDebug($"Sending invocation id:{invocationId} " + dateValue.ToString("MM/dd/yyyy hh:mm:ss.fff tt"));
-            _functionDispatcher.Invoke(invocationContext);
+            await _functionDispatcher.InvokeAsync(invocationContext);
+
             result = await invocationContext.ResultSource.Task;
 
             await BindOutputsAsync(triggerValue, context.Binder, result);

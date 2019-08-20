@@ -17,8 +17,8 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         private readonly IWorkerProcessFactory _processFactory;
         private readonly IProcessRegistry _processRegistry;
         private readonly ILogger _workerProcessLogger;
+        private readonly ILanguageWorkerConsoleLogSource _consoleLogSource;
         private readonly IScriptEventManager _eventManager;
-        private readonly ILogger _consoleLogger;
 
         private Process _process;
         private string _runtime;
@@ -35,15 +35,15 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                                        IWorkerProcessFactory processFactory,
                                        IProcessRegistry processRegistry,
                                        ILogger workerProcessLogger,
-                                       ILoggerFactory loggerFactory)
+                                       ILanguageWorkerConsoleLogSource consoleLogSource)
         {
             _runtime = runtime;
             _workerId = workerId;
             _processFactory = processFactory;
             _processRegistry = processRegistry;
             _workerProcessLogger = workerProcessLogger;
+            _consoleLogSource = consoleLogSource;
             _eventManager = eventManager;
-            _consoleLogger = loggerFactory.CreateLogger(LanguageWorkerConstants.FunctionConsoleLogCategoryName);
 
             var workerContext = new WorkerContext()
             {
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                     }
                     else
                     {
-                        _consoleLogger.LogInformation(msg);
+                        _consoleLogSource?.Log(msg);
                     }
                 }
                 else if ((msg.IndexOf("error", StringComparison.OrdinalIgnoreCase) > -1) ||
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                     }
                     else
                     {
-                        _consoleLogger.LogInformation(msg);
+                        _consoleLogSource?.Log(msg);
                     }
                     _processStdErrDataQueue = LanguageWorkerChannelUtilities.AddStdErrMessage(_processStdErrDataQueue, Sanitizer.Sanitize(msg));
                 }
@@ -128,7 +128,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                     }
                     else
                     {
-                        _consoleLogger.LogInformation(msg);
+                        _consoleLogSource?.Log(msg);
                     }
                 }
             }
@@ -144,16 +144,20 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             string exceptionMessage = string.Join(",", _processStdErrDataQueue.Where(s => !string.IsNullOrEmpty(s)));
             try
             {
-                if (_process.ExitCode != 0)
+                if (_process.ExitCode == LanguageWorkerConstants.SuccessExitCode)
+                {
+                    _process.WaitForExit();
+                    _process.Close();
+                }
+                else if (_process.ExitCode == LanguageWorkerConstants.IntentionalRestartExitCode)
+                {
+                    HandleWorkerProcessRestart();
+                }
+                else
                 {
                     var processExitEx = new LanguageWorkerProcessExitException($"{_process.StartInfo.FileName} exited with code {_process.ExitCode}\n {exceptionMessage}");
                     processExitEx.ExitCode = _process.ExitCode;
                     HandleWorkerProcessExitError(processExitEx);
-                }
-                else
-                {
-                    _process.WaitForExit();
-                    _process.Close();
                 }
             }
             catch (Exception)
@@ -174,7 +178,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                 }
                 else
                 {
-                    _consoleLogger.LogInformation(msg);
+                    _consoleLogSource?.Log(msg);
                 }
             }
         }
@@ -187,6 +191,12 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
                 _workerProcessLogger.LogDebug(langExc, $"Language Worker Process exited.", _process.StartInfo.FileName);
                 _eventManager.Publish(new WorkerErrorEvent(_runtime, _workerId, langExc));
             }
+        }
+
+        internal void HandleWorkerProcessRestart()
+        {
+            _workerProcessLogger?.LogInformation("Language Worker Process exited and needs to be restarted.");
+            _eventManager.Publish(new WorkerRestartEvent(_runtime, _workerId));
         }
 
         public void Dispose()
