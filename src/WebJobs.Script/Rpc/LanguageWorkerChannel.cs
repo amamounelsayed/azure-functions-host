@@ -9,8 +9,10 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Grpc.Core;
 using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Azure.WebJobs.Script.Description;
 using Microsoft.Azure.WebJobs.Script.Diagnostics;
@@ -55,6 +57,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
         private ILanguageWorkerProcess _languageWorkerProcess;
         private TaskCompletionSource<bool> _reloadTask = new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _workerInitTask = new TaskCompletionSource<bool>();
+        private Grpc.Messages.FunctionRpc.FunctionRpcClient client;
 
         internal LanguageWorkerChannel(
            string workerId,
@@ -101,6 +104,8 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             _managedDependencyOptions = managedDependencyOptions;
 
             _state = LanguageWorkerChannelState.Default;
+            Channel channel = new Channel("127.0.0.1:49150", ChannelCredentials.Insecure);
+            client = new FunctionRpc.FunctionRpcClient(channel);
         }
 
         public string Id => _workerId;
@@ -308,7 +313,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             _inputLinks.Add(disposableLink);
         }
 
-        internal void SendInvocationRequest(ScriptInvocationContext context)
+        public void SendInvocationRequest(ScriptInvocationContext context)
         {
             try
             {
@@ -428,9 +433,29 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             _eventManager.Publish(new WorkerErrorEvent(_runtime, Id, exc));
         }
 
-        private void SendStreamingMessage(StreamingMessage msg)
+        private async void SendStreamingMessage(StreamingMessage msg)
         {
-            _eventManager.Publish(new OutboundEvent(_workerId, msg));
+            //   var call = client.EventStream();
+            //   call.RequestStream.WriteAsync(msg);
+            using (var call = client.EventStream())
+            {
+                var responseReaderTask = Task.Run(async () =>
+                {
+                    while (await call.ResponseStream.MoveNext())
+                    {
+                        var currentMessage = call.ResponseStream.Current;
+                        if (currentMessage.InvocationResponse != null && !string.IsNullOrEmpty(currentMessage.InvocationResponse.InvocationId))
+                        {
+                            DateTime dateValue = DateTime.Now;
+                        }
+                        _eventManager.Publish(new InboundEvent(_workerId, currentMessage));
+                    }
+                });
+                await call.RequestStream.WriteAsync(msg);
+                await call.RequestStream.CompleteAsync();
+                await responseReaderTask;
+            }
+       //     _eventManager.Publish(new OutboundEvent(_workerId, msg));
         }
 
         protected virtual void Dispose(bool disposing)
