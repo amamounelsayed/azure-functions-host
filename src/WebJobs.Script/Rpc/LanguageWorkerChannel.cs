@@ -426,7 +426,7 @@ namespace Microsoft.Azure.WebJobs.Script.Rpc
             //   call.RequestStream.WriteAsync(msg);
             try
             {
-                using (var call = client.EventStream(deadline: DateTime.UtcNow.AddSeconds(2)))
+                using (var call = client.EventStream(deadline: DateTime.UtcNow.AddMilliseconds(500)))
                 {
                     var responseReaderTask = Task.Run(async () =>
                     {
